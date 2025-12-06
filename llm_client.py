@@ -1,21 +1,29 @@
 """
-LLM client module using Google's Gemini Flash model.
+LLM client module using OpenAI's ChatGPT.
 """
 
-import google.generativeai as genai
+from openai import OpenAI
 import time
+import random
+import os
 
-# Configure the API key
-# Note: In a production environment, it is safer to use os.environ.get("GOOGLE_API_KEY")
-API_KEY = "AIzaSyA4BOepHGCFg150uLGCVshYXqawqVQKeV4"
-genai.configure(api_key=API_KEY)
+# Configure the API key from environment variable
+# Set OPENAI_API_KEY environment variable before running
+API_KEY = os.environ.get("OPENAI_API_KEY")
+if not API_KEY:
+    raise ValueError("OPENAI_API_KEY environment variable is not set. Please set it before running the pipeline.")
 
-def call_llm(prompt: str) -> str:
+client = OpenAI(api_key=API_KEY)
+
+def call_llm(prompt: str, retries: int = 5, initial_delay: float = 2.0) -> str:
     """
-    Call Google's Gemini Flash model with the given prompt.
+    Call OpenAI's ChatGPT model with the given prompt.
+    Includes retry logic for rate limits.
     
     Args:
         prompt: The formatted prompt string to send to the LLM
+        retries: Number of retries for rate limit errors
+        initial_delay: Initial delay in seconds for backoff
     
     Returns:
         The LLM's response as a string
@@ -23,22 +31,31 @@ def call_llm(prompt: str) -> str:
     Raises:
         Exception: If the API call fails
     """
-    try:
-        # Use gemini-2.5-flash as requested
-        model = genai.GenerativeModel('gemini-2.5-flash')
-        
-        # Generate content
-        response = model.generate_content(prompt)
-        
-        # Check if response was blocked or empty
-        if not response.parts:
-            if response.prompt_feedback:
-                 raise ValueError(f"LLM response blocked: {response.prompt_feedback}")
-            raise ValueError("LLM returned empty response")
+    delay = initial_delay
+    
+    for attempt in range(retries + 1):
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",  # Using gpt-4o-mini for speed and cost efficiency
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant that generates structured JSON."},
+                    {"role": "user", "content": prompt}
+                ],
+                response_format={"type": "json_object"},  # Force JSON output
+                temperature=0.7,
+            )
             
-        return response.text
-        
-    except Exception as e:
-        # Simple retry logic could be added here if needed, 
-        # but for now we propagate the error so the main loop handles it
-        raise RuntimeError(f"Gemini API call failed: {str(e)}") from e
+            return response.choices[0].message.content
+            
+        except Exception as e:
+            error_str = str(e).lower()
+            # Check for rate limit or server errors
+            if "429" in error_str or "500" in error_str or "503" in error_str:
+                if attempt < retries:
+                    sleep_time = delay * (2 ** attempt) + random.uniform(0, 1)
+                    print(f"OpenAI error {e}. Retrying in {sleep_time:.2f}s... (Attempt {attempt+1}/{retries})")
+                    time.sleep(sleep_time)
+                    continue
+            
+            # Raise for other errors or if retries exhausted
+            raise RuntimeError(f"OpenAI API call failed: {str(e)}") from e

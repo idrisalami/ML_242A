@@ -3,6 +3,7 @@ Prompt building module for LLM-based founder profile generation.
 """
 
 import random
+from typing import Optional
 from config import (
     ALLOWED_ROLES,
     ALLOWED_INDUSTRIES,
@@ -11,7 +12,14 @@ from config import (
     PERSONALITY_TRAITS
 )
 
-def build_prompt(bio: str, job_title: str, age: int, gender: str) -> str:
+def build_prompt(
+    bio: str, 
+    job_title: str, 
+    age: int, 
+    gender: str,
+    suggested_role: Optional[str] = None,
+    suggested_industry: Optional[str] = None
+) -> str:
     """
     Build a prompt for the LLM to generate a founder profile from dating app data.
     
@@ -20,6 +28,8 @@ def build_prompt(bio: str, job_title: str, age: int, gender: str) -> str:
         job_title: User's job title (can be "unknown" or None)
         age: User's age
         gender: User's gender
+        suggested_role: Optionally suggest a preferred_role (soft hint)
+        suggested_industry: Optionally suggest an industry (soft hint)
     
     Returns:
         Formatted prompt string for LLM
@@ -32,11 +42,13 @@ def build_prompt(bio: str, job_title: str, age: int, gender: str) -> str:
     
     # --- Randomize example values to prevent overfitting ---
     
-    # Role & Industry
-    ex_role = random.choice(ALLOWED_ROLES)
-    ex_industry = random.choice(ALLOWED_INDUSTRIES)
+    # Role & Industry (use suggested values for EXAMPLES if provided, but LLM can override)
+    ex_role = suggested_role if suggested_role else random.choice(ALLOWED_ROLES)
+    ex_industry = suggested_industry if suggested_industry else random.choice(ALLOWED_INDUSTRIES)
+    
     # Ensure role list has the preferred role plus maybe another one
-    ex_roles_list = list(set([ex_role, random.choice(ALLOWED_ROLES)]))
+    other_role = random.choice([r for r in ALLOWED_ROLES if r != ex_role])
+    ex_roles_list = list(set([ex_role, other_role]))
     
     # Experience & Technical
     ex_years = random.randint(2, 12)
@@ -64,6 +76,18 @@ def build_prompt(bio: str, job_title: str, age: int, gender: str) -> str:
     # Example Idea (Generic placeholders based on industry to be safe)
     ex_idea_title = f"{ex_industry} Innovation Project"
     
+    # Construct soft hint instructions
+    hints = ""
+    if suggested_role:
+        hints += f"\n- **Role Preference:** Ideally, assign '{suggested_role}' to balance our dataset. HOWEVER, if the bio/job strongly suggests otherwise (e.g. 'Senior Engineer' -> CTO), prioritize the realistic fit over this suggestion."
+    else:
+        hints += f"\n- Role: Pick most suitable from {ALLOWED_ROLES} based on profile."
+
+    if suggested_industry:
+        hints += f"\n- **Industry Preference:** Ideally, assign '{suggested_industry}'. Override only if the profile is explicitly incompatible (e.g. bio mentions 'fashion' but suggestion is 'Fintech')."
+    else:
+        hints += f"\n- Industry: Pick most suitable from allowed industries."
+
     prompt = f"""You are transforming a dating app user profile into a tech startup founder profile.
 
 INPUT PROFILE:
@@ -74,21 +98,22 @@ INPUT PROFILE:
 
 TASK:
 Generate a realistic structured JSON founder profile. 
-CRITICAL: Do NOT copy the example values below. Infer unique values based on the specific Input Profile above.
 If the input bio/job is generic, hallucinate a creative and plausible persona (e.g., a former lawyer building legal tech, a chef building food tech, etc.).
+
+GUIDANCE & PREFERENCES:{hints}
 
 REQUIRED JSON STRUCTURE:
 
 {{
-  "roles": {str(ex_roles_list).replace("'", '"')},    // non-empty subset of: ["CEO","CTO","CPO","COO"]
-  "preferred_role": "{ex_role}",       // exactly one of these roles. VARY THIS based on profile.
+  "roles": {str(ex_roles_list).replace("'", '"')},    // non-empty subset of: ["CEO","CTO","CPO","COO"] including preferred_role
+  "preferred_role": "{ex_role}",       // exactly one of allowed roles
 
   "industry": "{ex_industry}",         // exactly one of allowed industries
 
   "secondary_industries": ["Fintech"], // optional, 0–2 values from allowed list
 
   "years_of_experience": {ex_years},
-  "is_technical": {str(ex_is_technical).lower()},               // true or false based on bio/job
+  "is_technical": {str(ex_is_technical).lower()},               // true or false based on bio/job/role
   "education_level": "{ex_education}",       // e.g. "bachelor", "master", "phd", "bootcamp", "self-taught"
 
   "tech_stack": {str(ex_tech_stack).replace("'", '"')},   // LIST of tools/languages relevant to their role/idea
@@ -129,7 +154,6 @@ GENERAL RULES:
 - Use ONLY the allowed values for roles and industry.
 - Output VALID JSON only (no markdown, no explanation).
 - Use the dating bio and job title to infer background and personality.
-- DIVERSITY REQUIREMENT: Vary the industries, roles, and ideas. Do not default to AI/CTO unless the profile strongly suggests it.
 """
     
     return prompt

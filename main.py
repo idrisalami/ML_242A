@@ -9,20 +9,28 @@ import pandas as pd
 import json
 from typing import Optional, Dict, Any
 from tqdm import tqdm
+import concurrent.futures
+import random
 
 from prompts import build_prompt
 from llm_client import call_llm
 from parser import parse_founder_json
 from behavioral_scores import compute_behavioral_scores, validate_required_columns
-from config import PERSONALITY_TRAITS
+from config import PERSONALITY_TRAITS, ALLOWED_ROLES, ALLOWED_INDUSTRIES
 
 
-def process_single_founder(row: pd.Series) -> Optional[Dict[str, Any]]:
+def process_single_founder(
+    row: pd.Series, 
+    suggested_role: Optional[str] = None, 
+    suggested_industry: Optional[str] = None
+) -> Optional[Dict[str, Any]]:
     """
     Process a single Tinder profile row into a founder profile.
     
     Args:
         row: Pandas Series with Tinder profile data
+        suggested_role: Optional suggested role (soft hint for distribution)
+        suggested_industry: Optional suggested industry (soft hint for distribution)
     
     Returns:
         Founder profile dictionary or None if processing fails
@@ -34,8 +42,15 @@ def process_single_founder(row: pd.Series) -> Optional[Dict[str, Any]]:
         age = row.get('user_age', 0)
         gender = row.get('gender', '')
         
-        # Build prompt
-        prompt = build_prompt(bio, job_title, age, gender)
+        # Build prompt with suggested soft hints
+        prompt = build_prompt(
+            bio, 
+            job_title, 
+            age, 
+            gender, 
+            suggested_role=suggested_role, 
+            suggested_industry=suggested_industry
+        )
         
         # Call LLM - Now mandatory
         try:
@@ -98,7 +113,8 @@ def flatten_founder_profile(founder_data: Dict[str, Any]) -> Dict[str, Any]:
 def build_founders_dataset(
     csv_path: str = "Tinder_Data_v3_Clean_Edition.csv",
     output_path: str = "founders_dataset.csv",
-    max_rows: Optional[int] = None
+    max_rows: Optional[int] = None,
+    max_workers: int = 10
 ) -> pd.DataFrame:
     """
     Build the complete founders dataset from Tinder data.
@@ -107,6 +123,7 @@ def build_founders_dataset(
         csv_path: Path to input Tinder CSV file
         output_path: Path for output founders CSV file
         max_rows: Maximum number of rows to process (None for all)
+        max_workers: Number of parallel threads for LLM calls
     
     Returns:
         DataFrame with founder profiles
@@ -136,23 +153,47 @@ def build_founders_dataset(
         df = df.head(max_rows)
         print(f"Processing first {max_rows} rows only")
     
-    # Process each row
-    print(f"Processing {len(df)} profiles with LLM...")
-    founder_profiles = []
+    # Define weights for roles: Higher for CEO/CTO
+    role_options = ["CEO", "CTO", "CPO", "COO"]
+    role_weights = [0.35, 0.35, 0.15, 0.15]  # 70% CEO/CTO, 30% others
     
-    for idx, row in tqdm(df.iterrows(), total=len(df), desc="Generating founder profiles"):
-        founder_data = process_single_founder(row)
+    # Process each row in parallel
+    print(f"Processing {len(df)} profiles with LLM using {max_workers} threads...")
+    founder_profiles = []
+    failed_rows = 0
+    
+    rows_to_process = [row for _, row in df.iterrows()]
+    
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Submit all tasks with weighted random SUGGESTIONS
+        future_to_row = {}
+        for row in rows_to_process:
+            # Weighted random choice for suggested role
+            suggested_role = random.choices(role_options, weights=role_weights, k=1)[0]
+            
+            # Simple random choice for suggested industry
+            suggested_industry = random.choice(ALLOWED_INDUSTRIES)
+            
+            future = executor.submit(process_single_founder, row, suggested_role, suggested_industry)
+            future_to_row[future] = row
         
-        if founder_data is not None:
-            # Flatten nested structures
-            flattened = flatten_founder_profile(founder_data)
-            founder_profiles.append(flattened)
-        else:
-            # Skip this row (logging handled in process_single_founder)
-            pass
+        # Process results as they complete
+        for future in tqdm(concurrent.futures.as_completed(future_to_row), total=len(rows_to_process), desc="Generating founder profiles"):
+            try:
+                founder_data = future.result()
+                if founder_data is not None:
+                    # Flatten nested structures
+                    flattened = flatten_founder_profile(founder_data)
+                    founder_profiles.append(flattened)
+                else:
+                    failed_rows += 1
+            except Exception as e:
+                print(f"Task generated an exception: {e}")
+                failed_rows += 1
     
     # Create founders DataFrame
     print(f"Successfully processed {len(founder_profiles)} founder profiles")
+    print(f"Failed rows: {failed_rows}")
     
     if not founder_profiles:
         print("Warning: No founder profiles were successfully generated")
@@ -199,12 +240,13 @@ if __name__ == "__main__":
     
     try:
         # Check if API is configured (basic check by trying import)
-        import google.generativeai as genai
+        import openai
         
         founders_df = build_founders_dataset(
             csv_path="Tinder_Data_v3_Clean_Edition.csv",
             output_path="founders_dataset.csv",
-            max_rows=None  # Process all rows
+            max_rows=None,  # Process all rows
+            max_workers=10  # Parallel threads
         )
         
         print("\n" + "="*60)
@@ -219,7 +261,7 @@ if __name__ == "__main__":
             print(founders_df.head())
         
     except ImportError:
-        print("\nError: google-generativeai package not found.")
+        print("\nError: openai package not found.")
         print("Please run: pip install -r requirements.txt")
     except FileNotFoundError:
         print("\n" + "="*60)
