@@ -1,0 +1,78 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{graphicx}
+
+% Formatting
+\geometry{a4paper, margin=1in}
+\linespread{1.15}
+
+\title{\textbf{Founder Matching: Optimizing Team Formation with Machine Learning}}
+\author{Team Project}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\newpage
+
+\section{Introduction}
+
+\subsection{Project Description and Motivation}
+Building a successful startup is a high-risk endeavor, and industry data consistently identifies the "team" as a primary determinant of success or failure. The process of finding a suitable co-founder, however, remains largely unstructured, relying on serendipitous networking or inefficient manual filtering. While platforms like YC Match (a "Tinder for founders") exist, they often rely on simple heuristic filters rather than intelligent, data-driven compatibility scoring.
+
+In this project, we aim to conceptualize and build a \textbf{Co-Founder Matching System}. Our use-case is a platform that takes a founder's profile---including their skills, personality traits, and startup ideas---and recommends the most compatible partners. 
+
+The motivation is to move towards a more nuanced approach that considers:
+\begin{itemize}
+    \item \textbf{Complementary Skills}: Matching technical founders with business-oriented founders.
+    \item \textbf{Behavioral Compatibility}: Aligning risk tolerance, communication styles, and leadership tendencies.
+    \item \textbf{Shared Vision}: Matching founders interested in similar problem spaces or industries.
+\end{itemize}
+
+This project applies machine learning techniques to automate and optimize this matching process, aiming to reduce the friction in team formation.
+
+\section{Data and Learning Problem}
+
+\subsection{Dataset Description and Generation}
+For this project, we required a rich dataset of potential founders. Since public datasets of detailed co-founder profiles are scarce, we constructed a synthetic yet realistic dataset based on real-world social data.
+
+We utilized a seed dataset of social profiles (\texttt{Tinder\_Data\_v3\_Clean\_Edition.csv}). To transform this into a professional context, we built a data generation pipeline using a Large Language Model (LLM). For each of the approximately 1,200 profiles, we fed the existing biographical data (age, gender, bio) into the LLM with a specific prompt to hallucinate a plausible "Founder Persona."
+
+The resulting \texttt{founders\_dataset.csv} includes:
+\begin{itemize}
+    \item \textbf{Professional Attributes}: \texttt{preferred\_role} (CEO, CTO, COO, etc.), \texttt{industry}, \texttt{years\_of\_experience}, \texttt{is\_technical}, and \texttt{education\_level}.
+    \item \textbf{Skills}: Lists of \texttt{tech\_stack}, \texttt{strengths}, and \texttt{weaknesses}.
+    \item \textbf{Startup Concept}: \texttt{idea\_title}, \texttt{idea\_description}, and \texttt{problem\_space}.
+    \item \textbf{Behavioral Scores}: Numerical scores (scale 1-5 or 0-1) for traits such as \texttt{risk\_tolerance}, \texttt{leadership}, \texttt{collaboration\_openness}, and \texttt{communication\_intensity}.
+\end{itemize}
+
+\subsection{Data Exploration and Relationships}
+We expect to see natural correlations in the data that our models can leverage. For instance, "technical" founders (CTOs) likely have high proficiency in specific tech stacks (Python, React) but might self-report lower scores in "sales" or "public speaking" (weaknesses). Conversely, CEOs might index higher on "leadership" and "vision" scores.
+
+We explicitly engineered the generation process to create a balanced distribution of roles (weighted towards CEOs and CTOs) and diverse industries (Fintech, Healthtech, Consumer Social) to simulate a realistic founder pool.
+
+\subsection{Challenges with the Data}
+A significant challenge in this dataset lies in the unstructured text features: \texttt{idea\_title}, \texttt{idea\_description}, and \texttt{problem\_space}. These fields contain full sentences and semantic nuance that are critical for matching founders with a shared vision. 
+
+Standard preprocessing techniques like Label Encoding or One-Hot Encoding are unsuitable for these text-heavy features. To fully utilize them, Natural Language Processing (NLP) techniques such as text embeddings (e.g., TF-IDF or BERT) would be required to calculate semantic similarity. While we acknowledge this necessity, extensive NLP implementation is beyond the current scope of this project. For our core models, we primarily rely on the structured categorical data and numerical behavioral scores, treating the text fields as metadata for future expansion.
+
+\section{Methodology}
+
+To address the matching problem, we propose comparing two distinct machine learning approaches. This comparison allows us to evaluate different paradigms of "team formation":
+
+\subsection{Collaborative Filtering (Pair-wise Matching)}
+We implement a Collaborative Filtering approach, treating the problem similarly to a recommendation system. In this context, we view each founder as both a "user" and an "item." The goal is to predict the compatibility score between any pair of founders. This method focuses on finding the optimal \textit{individual} partner for a given user.
+
+\subsection{Clustering (Team Formation)}
+Complementing the pair-wise approach, we use Clustering algorithms (e.g., K-Means or Hierarchical Clustering) to partition the founder pool into groups. This method simulates the formation of co-founding teams (size 2+) by maximizing intra-cluster diversity (ensuring a mix of roles like CEO + CTO) while maintaining compatibility in vision and industry interest.
+
+\vspace{1em}
+\noindent \textit{Note: The detailed implementation, tuning, and results of these two methods are discussed in the subsequent sections of this report.}
+
+\end{document}
+
