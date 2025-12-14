@@ -11,13 +11,32 @@
 \linespread{1.15}
 
 \title{\textbf{Founder Matching: Optimizing Team Formation with Machine Learning}}
-\author{Team Project}
+
+\author{
+INDENG 242 -- Machine Learning and Data Analytics \\
+Project Report \\  [0.8em] Idris Houir Alami \\ Youssef Miled \\ Ryan Michael Chekkouri
+}
+
 \date{\today}
 
 \begin{document}
 
 \maketitle
-
+\begin{abstract}
+Forming effective startup teams is a critical yet largely unstructured challenge, often relying on
+ad hoc networking or heuristic-based matching. This report presents a data-driven approach to
+cofounder matching that leverages machine learning to optimize team formation based on both
+similarity and complementarity of founder profiles. Using a synthetically generated yet realistic
+dataset of founder attributes, we develop a collaborative filtering model that learns latent
+founder archetypes through matrix factorization, enabling personalized pairwise compatibility
+recommendations. To address the limitation of pairwise matching when forming larger teams, we
+extend the methodology with a clustering-based approach designed to promote complementary skill
+composition within multi-founder teams. The strong generalization
+performance and interpretability of user archetypes highlights the model’s potential as a scalable
+decision-support tool for founder matching platforms while also identifying key limitations
+related to outcome validation and team-level optimization.
+\end{abstract}
+\newpage
 \tableofcontents
 \newpage
 
@@ -107,13 +126,46 @@ We minimize:
 \]
 using Stochastic Gradient Descent (SGD). Regularization $\lambda$ prevents overfitting.
 
-\subsubsection{Hyperparameter Tuning}
+\subsubsection{Model Training, Hyperparameter Tuning, and Recommendation Output}
 
-The number of latent archetypes $A$ and regularization strength $\lambda$ are optimized using grid search with cross-validation, selecting the configuration minimizing validation RMSE.
+The collaborative filtering model is trained using stochastic gradient descent to minimize the
+regularized squared error objective. Two key hyperparameters govern model expressiveness and
+generalization: the number of latent archetypes $A$ and the regularization coefficient $\lambda$.
+These parameters are optimized using grid search with cross-validation, selecting the
+configuration that minimizes validation RMSE and achieves a clear bias--variance tradeoff.
 
-\subsubsection{Recommendation Output}
+After training, the model computes predicted compatibility scores $\hat{R}_{ij}$ for all pairs of
+founders. For each founder, these scores are ranked to produce a personalized list of recommended
+cofounders, balancing similarity in vision and behavior with complementarity in skills and roles.
+\subsubsection{Results and Discussion (Collaborative Filtering)}
 
-After training, the model computes $\hat{R}_{ij}$ for all founder pairs. Ranking these scores produces personalized cofounder recommendations balancing similarity and complementary skill coverage.
+The matrix factorization model learned 24 latent archetypes that capture distinct and interpretable
+patterns in founder characteristics. By correlating each archetype’s latent weights with the
+original features, we identify meaningful founder profiles. These results demonstrate that the learned latent
+factors align with intuitive archetypes. Detailed archetype interpretations are provided in the Appendix
+through correlation heatmaps.
+
+The model performance is evaluated using RMSE. The best-performing
+configuration achieved a training RMSE of 0.0789, a validation RMSE of 0.0796, and a test RMSE of
+0.0790. The small gap between validation and test errors indicates strong generalization and
+minimal overfitting. This behavior reflects an appropriate bias vs variance tradeoff achieved
+through tuning the number of archetypes and the regularization coefficient $\lambda$.
+
+Overall, the collaborative filtering approach scales efficiently and
+generates personalized recommendations for all founders in the dataset. The latent archetypes
+uncover non-obvious structure in founder profiles that can inform strategic matching decisions.
+Moreover, the explicit combination of similarity (shared industry, communication style, and risk
+tolerance) and complementarity (roles, skills, and experience) reflects the practical
+requirements of successful cofounder teams.
+
+On the other hand, the primary constraint is the absence of
+ground-truth outcome data linking recommendations to actual cofounder success, which limits the
+interpretation of RMSE as a proxy for real-world effectiveness. Additionally, the collaborative
+filtering framework operates at the pairwise level, as similarity and complementarity are defined
+between two founders at a time. Founders aiming to form larger teams of four or
+five individuals are therefore not addressed. In such cases, we need an approach beyond pairwise matching. A clustering-based approach is introduced in the following
+section to support multi-founder team formation.
+
 
 \subsection{Clustering (Team Formation)}
 
@@ -148,4 +200,3 @@ The key differences are in experience and focus: clusters with heavier CTO repre
 
 
 \end{document}
-
