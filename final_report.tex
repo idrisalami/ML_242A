@@ -46,7 +46,7 @@ We utilized a seed dataset of social profiles (\texttt{Tinder\_Data\_v3\_Clean\_
 
 The resulting \texttt{founders\_dataset.csv} includes:
 \begin{itemize}
-    \item \textbf{Professional Attributes}: \texttt{preferred\_role} (CEO, CTO, COO, etc.), \texttt{industry}, \texttt{years\_of\_experience}, \texttt{is\_technical}, and \texttt{education\_level}.
+    \item \textbf{Professional Attributes}: \texttt{preferred\_role} (CEO, CTO, COO, etc.), \texttt{industry}, \texttt{is\_technical}, \texttt{years\_of\_experience}, and \texttt{education\_level}.
     \item \textbf{Skills}: Lists of \texttt{tech\_stack}, \texttt{strengths}, and \texttt{weaknesses}.
     \item \textbf{Startup Concept}: \texttt{idea\_title}, \texttt{idea\_description}, and \texttt{problem\_space}.
     \item \textbf{Behavioral Scores}: Numerical scores (scale 1-5 or 0-1) for traits such as \texttt{risk\_tolerance}, \texttt{leadership}, \texttt{collaboration\_openness}, and \texttt{communication\_intensity}.
@@ -116,7 +116,36 @@ The number of latent archetypes $A$ and regularization strength $\lambda$ are op
 After training, the model computes $\hat{R}_{ij}$ for all founder pairs. Ranking these scores produces personalized cofounder recommendations balancing similarity and complementary skill coverage.
 
 \subsection{Clustering (Team Formation)}
-Complementing the pair-wise approach, we use Clustering algorithms (e.g., K-Means or Hierarchical Clustering) to partition the founder pool into groups. This method simulates the formation of co-founding teams (size 2+) by maximizing intra-cluster diversity (ensuring a mix of roles like CEO + CTO) while maintaining compatibility in vision and industry interest.
+
+Complementing the pair-wise approach, we use Clustering algorithms (K-Means) to partition the founder pool into groups. This method simulates the formation of co-founding teams (size 2+) by maximizing intra-cluster diversity (ensuring a mix of roles like CEO + CTO) while maintaining compatibility in vision and industry interest.
+
+\subsubsection{Data preprocessing for clustering}
+
+Each observation in this dataset corresponded to one particular combination of feature types: categorical variables, numerical metrics, and multi-label attributes (we decided to drop NLP variables because it is outside of the scope of this class). We encoded multi-label variables and categorical values. We also did numerical standardization. 
+
+The resulting feature matrix combined all the transformed features into 368 dimensions, each founder possessed. In order to handle high dimensionality and potential noise, Principal Component Analysis was performed to reduce the features down to 29 components, retaining 90\% of the variance. This significantly improves the efficiency of the clustering process.
+
+
+\subsubsection{Complementarity-based clustering methodology}
+
+Conventional similarity-based clustering clusters founders with similar attributes, which is not ideal for team formation with complementary skills. We developed a complementarity-based clustering solution that clusters founders into complementary skill, role, or attribute clusters.
+
+A custom complementarity scoring formula was used to evaluate the affinity between founders for each of the four important factors. Role difference was given 35\% weight as a binary metric of differences in favored roles. Role diversity was given 30\% weight as Jaccard diversity of secondary roles. Tech stack diversity was given 20\% weight as Jaccard diversity of technical skills. Strengths-weaknesses overlap was given 15\% weight as a metric of how well one founder's strengths overlap with another's weaknesses.
+
+This complementarity matrix is used for clustering for grouping founders who would make balanced teams as opposed to homogeneous founders.
+
+K-Means clustering was then performed on the reduced data space using the principal components. Using the elbow method, k=6 clusters were found to strike the right balance between intra-cluster difference and inter-clusters.
+
+
+\subsubsection{Cluster analysis and complementary pair evaluation}
+
+
+Overall, the cluster profiles reveal a founder population dominated by hybrid CEO-CTO types who combine deep technical fluency with product vision and leadership, but who vary in scale, maturity, and style of execution. Across all clusters, creativity, user empathy, and scrappiness consistently emerge as core strengths, suggesting a common bias toward vision-first, customer-centric building. Python, React, Node.js, and AWS form a common technical backbone, with lighter-weight tools such as Figma, Webflow, and Firebase appearing more in smaller or earlier-stage clusters.
+
+The key differences are in experience and focus: clusters with heavier CTO representation-for example, Clusters 2 and 5, display greater technical depth and rapid learning, struggling more with the business fundamentals, hiring, and delegation, while more CEO-heavy clusters, like Clusters 1 and 3, exhibit the reverse, bringing stronger leadership and ownership with risks of perfectionism, distraction, and burnout. Early-stage or scrappier profiles, such as Cluster 0, bring creativity and speed but may struggle with focus and prioritization. Perhaps most consistently across nearly all groups, struggles to delegate and intolerance of slow processes mark systemic weaknesses and a core transition challenge from individual contributor to scalable leader.
+
+
+
 
 \end{document}
 
