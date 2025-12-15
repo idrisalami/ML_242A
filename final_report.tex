@@ -196,7 +196,61 @@ Overall, the cluster profiles reveal a founder population dominated by hybrid CE
 
 The key differences are in experience and focus: clusters with heavier CTO representation-for example, Clusters 2 and 5, display greater technical depth and rapid learning, struggling more with the business fundamentals, hiring, and delegation, while more CEO-heavy clusters, like Clusters 1 and 3, exhibit the reverse, bringing stronger leadership and ownership with risks of perfectionism, distraction, and burnout. Early-stage or scrappier profiles, such as Cluster 0, bring creativity and speed but may struggle with focus and prioritization. Perhaps most consistently across nearly all groups, struggles to delegate and intolerance of slow processes mark systemic weaknesses and a core transition challenge from individual contributor to scalable leader.
 
+\newpage
+\appendix
+\section{Appendix}
+
+\subsection{Model Selection and Archetype Analysis}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.75\textwidth]{rmse_plt.png}
+    \caption{Plot of RMSE to the number of archetypes tradeoff}
+    \label{fig:rmse_k}
+\end{figure}
+
+\subsection{Archetype Interpretation}
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=\textwidth]{industry.png}
+    \caption{Archetype weight by industry heatmap}
+    \label{fig:industry_heatmap}
+\end{figure}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=\textwidth]{techstack.png}
+    \caption{Archetype weight by tech stack heatmap}
+    \label{fig:tech_stack_heatmap}
+\end{figure}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.85\textwidth]{prefrole.png}
+    \caption{Archetype weight by preferred role heatmap}
+    \label{fig:role_heatmap}
+\end{figure}
 
 
+
+The matrix factorization model identifies 24 latent founder archetypes, each capturing distinct and interpretable patterns in founder characteristics. Archetypes are interpreted by analyzing correlations between their latent weights and the original behavioral, technical, and industry features. Below, we describe the most salient archetypes based on their strongest associations.
+
+\paragraph{Archetype 1: Risk-Taking Innovators}
+Archetype~1 primarily captures risk-taking tendencies. High weights on this archetype results in elevated risk tolerance (0.228) and interest in Climate/Greentech (0.240) and Biotech (0.204). This archetype is also associated with higher responsiveness (0.187) and familiarity with TensorFlow (0.125).
+
+\paragraph{Archetype 2: Generalist Collaborators}
+Archetype~2 represents generalist founders with moderate responsiveness (0.123) and openness to collaboration (0.096), but no strong industry or technical specialization. Its relatively uniform associations across multiple industries suggest broad applicability rather than domain depth. 
+
+\paragraph{Archetype 3: Technical Specialists}
+Archetype~3 captures technically sophisticated founders, it captures proficiency in TensorFlow (0.195) and Solidity (0.112). An interest in AI/Deeptech (0.277) and Consumer/Social (0.222) sectors is also observed. This archetype also exhibits moderate risk tolerance (0.133) and secondary associations with Fintech, Climate/Greentech, and Web3/Crypto.
+
+\paragraph{Archetype 4: Data-Driven Fintech Builders}
+Archetype~4 is strongly aligned with Fintech founders (0.292) with some overlap with AI/Deeptech (0.180). These founders display high responsiveness (0.172) and strong analytical tool familiarity including TensorFlow (0.109), Webflow (0.083), and Tableau (0.077). This archetype reflects data-driven, execution-oriented founders in financial technology.
+
+\paragraph{Archetype 5: Product-Focused Leaders}
+Archetype~5 corresponds to product-focused founders, particularly those with CPO roles (role: 0.070, preferred role: 0.067). It is most prominent in Fintech (0.254) and Healthtech (0.207), with additional presence in SaaS and AI/Deeptech. This archetype is associated with TensorFlow usage (0.073) and characteristic weaknesses such as perfectionism (0.072), prioritization challenges (0.063), and weaker sales capabilities (0.059), consistent with product-centric leadership profiles.
+
+\vspace{0.5em}
+Overall, these archetypes capture meaningful latent dimensions that integrate behavioral traits, technical skills, industry focus, and functional roles. Their interpretability is critical for explaining founder-matching recommendations and for fostering trust in the system’s outputs.
 
 \end{document}
