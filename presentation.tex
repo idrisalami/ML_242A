@@ -1,0 +1,315 @@
+\documentclass{beamer}
+
+% Theme and Color Setup
+\usetheme{Madrid}
+\usecolortheme{default}
+
+% Packages
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{amsfonts}
+
+% Metadata
+\title[Founder Matching]{Founder Matching:\\ Optimizing Team Formation with Machine Learning}
+\subtitle{INDENG 242 - Machine Learning and Data Analytics}
+\author[Idris Houir Alami, Youssef Miled, Ryan Michael Chekkouri]{Idris Houir Alami \and Youssef Miled \and Ryan Michael Chekkouri}
+\institute[]{University of California, Berkeley} % Assumed based on INDENG 242
+\date{} % Based on the "D22" text found in the footer/date area
+
+\begin{document}
+
+% --- SLIDE 1: Title ---
+\begin{frame}
+    \titlepage
+\end{frame}
+
+% --- SLIDE 2: Motivation ---
+\begin{frame}{Motivation}
+    \begin{itemize}
+        \item Team quality is a key determinant of startup success
+        \item Founder matching is often informal and heuristic-based
+        \item Existing platforms lack data-driven compatibility modeling
+    \end{itemize}
+    
+    \vspace{0.5cm}
+    
+    \begin{block}{Goal}
+    Build a scalable, interpretable ML system for cofounder matching that balances:
+    \begin{itemize}
+        \item \textbf{similarity} (vision, communication style)
+        \item \textbf{complementarity} (skills, roles, experience)
+    \end{itemize}
+    \end{block}
+\end{frame}
+
+% --- SLIDE 3: Dataset ---
+\begin{frame}{Dataset}
+    \begin{itemize}
+        \item Synthetic but realistic dataset of $\sim$ 1,200 founders
+        \item Generated using LLM-based persona construction
+    \end{itemize}
+    
+    \vspace{0.5cm}
+    \textbf{Feature types:}
+    \begin{itemize}
+        \item \textbf{Categorical:} industry, preferred role
+        \item \textbf{Multi-label:} tech stack, strengths, weaknesses, roles
+        \item \textbf{Numerical:} risk tolerance, collaboration openness, experience
+        \item \textbf{Text (idea title/description):} used for similarity analysis
+    \end{itemize}
+\end{frame}
+
+% --- SLIDE 4: Learning Problem ---
+\begin{frame}{Learning Problem}
+    \begin{itemize}
+        \item Founders act as both ``users'' and ``items''
+        \item \textbf{Objective:} predict compatibility score $R_{ij}$ between founders $i$ and $j$
+    \end{itemize}
+    
+    \begin{equation*}
+        R_{ij} = \alpha S_{ij} + (1-\alpha)C_{ij}
+    \end{equation*}
+    
+    \begin{itemize}
+        \item $\alpha = 0.5$
+        \item $S_{ij}$: similarity score
+        \item $C_{ij}$: complementarity score
+    \end{itemize}
+\end{frame}
+
+% --- SLIDE 5: Feature Engineering ---
+\begin{frame}{Feature Engineering}
+    \begin{columns}[t]
+        \column{0.5\textwidth}
+        \begin{block}{Similarity Features}
+            \begin{itemize}
+                \item Industry
+                \item Behavioral scores (risk, communication, responsiveness)
+                \item Idea semantics
+            \end{itemize}
+        \end{block}
+
+        \column{0.5\textwidth}
+        \begin{block}{Complementarity Features}
+            \begin{itemize}
+                \item Roles and preferred roles
+                \item Tech stack
+                \item Strengths and weaknesses
+                \item Experience and education
+            \end{itemize}
+        \end{block}
+    \end{columns}
+\end{frame}
+
+% --- SLIDE 6: Similarity Computation ---
+\begin{frame}{Similarity Computation}
+    Similarity is computed using cosine similarity:
+    
+    \begin{equation*}
+        cos(x,y) = \frac{x \cdot y}{||x|| ||y||}
+    \end{equation*}
+    
+    \begin{itemize}
+        \item Applied to L2-normalized similarity feature matrix
+        \item Captures alignment in vision, style, and industry
+    \end{itemize}
+\end{frame}
+
+% --- SLIDE 7: Complementarity Computation ---
+\begin{frame}{Complementarity Computation}
+    \begin{itemize}
+        \item \textbf{Multi-label features use Jaccard distance:}
+        \begin{itemize}
+            \item Ignores co-absence
+            \item Emphasizes functional diversity
+        \end{itemize}
+    \end{itemize}
+    
+    \begin{equation*}
+        C_{ij} = 1 - \frac{|A \cap B|}{|A \cup B|}
+    \end{equation*}
+    
+    \begin{itemize}
+        \item Numerical features use standardized distances
+    \end{itemize}
+\end{frame}
+
+% --- SLIDE 8: Collaborative Filtering Model ---
+\begin{frame}{Collaborative Filtering Model}
+    We apply matrix factorization:
+    
+    \begin{equation*}
+        \hat{R}_{ij} = \mu + b_{u}[i] + b_{i}[j] + P[i] \cdot Q[j]
+    \end{equation*}
+    
+    \begin{itemize}
+        \item $P, Q \in \mathbb{R}^{n \times A}$: latent archetypes
+        \item $A$: number of archetypes
+    \end{itemize}
+\end{frame}
+
+% --- SLIDE 9: Optimization ---
+\begin{frame}{Optimization}
+    \textbf{Objective function:}
+    
+    \begin{equation*}
+        \sum_{i,j}(R_{ij} - \hat{R}_{ij})^{2} + \lambda(||P||^{2} + ||Q||^{2} + ||b_{\mu}||^{2} + ||b_{i}||^{2})
+    \end{equation*}
+    
+    \begin{itemize}
+        \item Optimized using SGD
+        \item Grid search over $A$ and $\lambda$
+    \end{itemize}
+\end{frame}
+
+% --- SLIDE 10: Results: Model Performance ---
+\begin{frame}{Results: Model Performance}
+    \textbf{Best configuration:}
+    \begin{itemize}
+        \item Archetypes $A=24$
+        \item Regularization $\lambda=0.02$
+    \end{itemize}
+    
+    \vspace{0.5cm}
+    
+    \textbf{RMSE:}
+    \begin{itemize}
+        \item Train: 0.0789
+        \item Validation: 0.0796
+        \item Test: 0.0790
+        \item Small validation-test gap $\rightarrow$ good generalization
+    \end{itemize}
+\end{frame}
+
+% --- SLIDE 11: RMSE vs Number of Archetypes ---
+\begin{frame}{RMSE vs Number of Archetypes}
+    \centering
+    \includegraphics[width=0.8\textwidth]{rmse_plt.png}
+    
+    \vspace{0.5cm}
+    \small Figure: RMSE as a function of the number of latent archetypes
+\end{frame}
+
+% --- SLIDE 12: Latent Archetype Interpretation ---
+\begin{frame}{Latent Archetype Interpretation}
+    \begin{itemize}
+        \item 24 interpretable founder archetypes learned
+        \item Capture patterns across industry, skills, behavior, and roles
+    \end{itemize}
+    
+    \vspace{0.5cm}
+    \textbf{Examples:}
+    \begin{itemize}
+        \item Risk-tolerant Climate/AI founders
+        \item Product-focused CPO profiles
+        \item Technical CTO-heavy archetypes
+    \end{itemize}
+    
+    \vspace{0.5cm}
+    \textit{See heatmaps in appendix for details}
+\end{frame}
+
+% --- SLIDE 13: Limitations ---
+\begin{frame}{Limitations}
+    \begin{itemize}
+        \item No ground-truth outcome data (no success labels)
+        \item RMSE does not directly measure recommendation quality
+        \item Pairwise matching only
+    \end{itemize}
+    
+    \vspace{0.5cm}
+    \textbf{Motivation for clustering:}
+    \begin{itemize}
+        \item Team formation beyond pairs (4--5 founders)
+    \end{itemize}
+\end{frame}
+
+% --- SLIDE 14: Clustering for Team Formation ---
+\begin{frame}{Clustering for Team Formation}
+    \begin{itemize}
+        \item Simulates co-founding team formation (size 2+)
+        \item Maximizes intra-cluster diversity (roles: CEO, CTO, etc.)
+        \item Maintains compatibility in vision and industry
+    \end{itemize}
+    
+    \vspace{0.5cm}
+    \begin{block}{Goal}
+        \begin{itemize}
+            \item Form balanced, multi-founder teams
+            \item Maximize role and skill diversity
+        \end{itemize}
+    \end{block}
+\end{frame}
+
+% --- SLIDE 14b: Data Preprocessing for Clustering ---
+\begin{frame}{Data Preprocessing for Clustering}
+    \begin{itemize}
+        \item \textbf{Feature types:} categorical, numerical, multi-label
+        \item \textbf{Dropped NLP variables} (outside scope)
+        \item \textbf{Initial dimensions:} 368 features per founder
+    \end{itemize}
+    
+    \vspace{0.5cm}
+    
+    \textbf{Dimensionality Reduction via PCA:}
+    \begin{itemize}
+        \item Retained 90\% of variance
+        \item Improves efficiency and reduces noise
+    \end{itemize}
+\end{frame}
+
+% --- SLIDE 14c: Complementarity Scoring Formula ---
+\begin{frame}{Complementarity Scoring Formula}
+    \begin{equation*}
+        C_{ij} = 0.35 \cdot RD + 0.30 \cdot RDiv + 0.20 \cdot TD + 0.15 \cdot SW
+    \end{equation*}
+    
+    \begin{itemize}
+        \item \textbf{Role Difference (35\%):} Binary metric of different preferred roles
+        \item \textbf{Role Diversity (30\%):} Jaccard diversity of secondary roles
+        \item \textbf{Tech Stack Diversity (20\%):} Jaccard diversity of technical skills
+        \item \textbf{Strengths-Weaknesses Overlap (15\%):} How strengths cover weaknesses
+    \end{itemize}
+    
+    \vspace{0.5cm}
+    
+    \textit{Creates balanced teams rather than homogeneous clusters}
+\end{frame}
+
+% --- SLIDE 14d: Clustering Results ---
+\begin{frame}{Clustering Results \& Analysis}
+    \textbf{K-Means with $k=6$ clusters} (elbow method)
+    
+    \vspace{0.5cm}
+    
+    \textbf{Key Findings:}
+    \begin{itemize}
+        \item Founder population dominated by \textbf{hybrid CEO-CTO types}
+        \item \textbf{Common strengths:} creativity, user empathy, scrappiness
+        \item \textbf{Tech backbone:} Python, React, Node.js, AWS
+        \item \textbf{CTO-heavy clusters} (2, 5): deeper technical depth, weaker business fundamentals
+        \item \textbf{CEO-heavy clusters} (1, 3): strong leadership, risks of perfectionism
+        \item \textbf{Early-stage clusters} (0): creative \& fast, but struggle with focus
+        \item \textbf{Systemic weakness:} struggles to delegate, intolerance of slow processes
+    \end{itemize}
+\end{frame}
+
+% --- SLIDE 15: Conclusion ---
+\begin{frame}{Conclusion}
+    \begin{itemize}
+        \item Collaborative filtering provides scalable, interpretable pairwise matching
+        \item Latent archetypes uncover meaningful founder structure
+        \item Clustering extends approach to team-level formation
+    \end{itemize}
+    
+    \vspace{0.5cm}
+    \begin{block}{Future Work}
+        \begin{itemize}
+            \item Outcome-based validation
+            \item Human-in-the-loop feedback
+            \item Multi-objective optimization
+        \end{itemize}
+    \end{block}
+\end{frame}
+
+\end{document}
